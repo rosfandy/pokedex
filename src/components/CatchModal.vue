@@ -25,6 +25,47 @@ const stars = ref(null);
 const dust = ref(null);
 const timeline = ref(null);
 
+const sounds = {
+  pop: new Audio("/pokeball_pop.mp3"),
+  roll: new Audio("/pokeball_roll.mp3"),
+  caught: new Audio("/pokeball_caught.mp3"),
+  failed: new Audio("/pokeball_failed.mp3"),
+};
+sounds.pop.preload = "auto";
+sounds.roll.preload = "auto";
+sounds.caught.preload = "auto";
+sounds.failed.preload = "auto";
+
+function playSound(key) {
+  const sound = sounds[key];
+  if (!sound) return;
+  try {
+    sound.currentTime = 0;
+    const attempt = sound.play();
+    if (attempt && typeof attempt.catch === "function") attempt.catch(() => {});
+  } catch {
+    return;
+  }
+}
+
+function stopSound(key) {
+  const sound = sounds[key];
+  if (!sound) return;
+  try {
+    sound.pause();
+    sound.currentTime = 0;
+  } catch {
+    return;
+  }
+}
+
+function stopAllSounds() {
+  stopSound("pop");
+  stopSound("roll");
+  stopSound("caught");
+  stopSound("failed");
+}
+
 const ballInfo = computed(() => ballByKey(props.ballKey));
 const berryInfo = computed(() => berryByKey(props.berryKey));
 const chance = computed(() =>
@@ -59,6 +100,7 @@ function stop() {
     timeline.value.kill();
     timeline.value = null;
   }
+  stopAllSounds();
 }
 
 function reset() {
@@ -74,7 +116,13 @@ function reset() {
 }
 
 function run() {
-  if (!props.pokemon || phase.value !== PHASE.idle) return;
+  if (!props.pokemon) return;
+  if (
+    phase.value === PHASE.throwing ||
+    phase.value === PHASE.absorbing ||
+    phase.value === PHASE.shaking
+  )
+    return;
   reset();
 
   const roll = Math.random() * 100;
@@ -95,6 +143,7 @@ function run() {
   timeline.value = tl;
 
   phase.value = PHASE.throwing;
+  playSound("pop");
   tl.set(ball.value, { autoAlpha: 1 })
     .fromTo(
       ball.value,
@@ -116,20 +165,30 @@ function run() {
   for (let i = 1; i <= 3; i += 1) {
     tl.add(() => {
       shake.value = i;
+      playSound("roll");
     })
-      .to(ball.value, { rotate: -26, duration: 0.16, ease: "power1.inOut" })
-      .to(ball.value, { rotate: 24, duration: 0.16, ease: "power1.inOut" })
-      .to(ball.value, { rotate: -14, duration: 0.14, ease: "power1.inOut" })
-      .to(ball.value, { rotate: 8, duration: 0.12, ease: "power1.inOut" })
-      .to(ball.value, { rotate: 0, duration: 0.3, ease: "power1.out" });
+      .to(ball.value, { rotate: -24, duration: 0.2, ease: "sine.inOut" })
+      .to(ball.value, { rotate: 22, duration: 0.2, ease: "sine.inOut" })
+      .to(ball.value, { rotate: -13, duration: 0.18, ease: "sine.inOut" })
+      .to(ball.value, { rotate: 7, duration: 0.14, ease: "sine.inOut" })
+      .to(ball.value, { rotate: 0, duration: 0.1, ease: "sine.out" })
+      .to(ball.value, { duration: 0.24 });
   }
 
   if (succeeded) {
-    tl.to(ball.value, { scale: 1.08, duration: 0.25, ease: "back.out(2)" })
+    tl.add(() => {
+      stopSound("roll");
+      playSound("caught");
+    })
+      .to(ball.value, { scale: 1.08, duration: 0.25, ease: "back.out(2)" })
       .to(ball.value, { scale: 1, duration: 0.25 })
       .to(stars.value, { autoAlpha: 1, scale: 1.5, rotate: 45, duration: 0.8, ease: "power2.out" }, "<");
   } else {
-    tl.to(ball.value, { autoAlpha: 0, scale: 1.3, duration: 0.2 })
+    tl.add(() => {
+      stopSound("roll");
+      playSound("failed");
+    })
+      .to(ball.value, { autoAlpha: 0, scale: 1.3, duration: 0.2 })
       .to(dust.value, { autoAlpha: 0.95, scale: 1.7, duration: 0.6, ease: "power2.out" }, "<")
       .to(sprite.value, { autoAlpha: 1, scale: 1.05, y: 0, duration: 0.5, ease: "back.out(2)" }, "<0.15")
       .to(dust.value, { autoAlpha: 0, duration: 0.4 });
