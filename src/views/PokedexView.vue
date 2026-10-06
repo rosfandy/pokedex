@@ -402,7 +402,9 @@ watch([filtered, shown], fill);
         v-else-if="!visible.length && !loading && !searching"
         class="py-16 text-center text-sm font-medium text-slate-400"
       >
-        {{ isSearching ? "No Pokémon match that search." : "No Pokémon here yet." }}
+        {{
+          isSearching ? "No Pokémon match that search." : "No Pokémon here yet."
+        }}
       </p>
 
       <div class="mt-10 flex flex-col items-center justify-center gap-2.5">
