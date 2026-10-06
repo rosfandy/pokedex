@@ -6,6 +6,7 @@ import PokedexView from "../views/PokedexView.vue";
 import PokedexDetailView from "../views/PokedexDetailView.vue";
 import ElementalView from "../views/ElementalView.vue";
 import ElementalDetailView from "../views/ElementalDetailView.vue";
+import GenerationsView from "../views/GenerationsView.vue";
 import { smoothScrollTo } from "../directives/reveal";
 
 const router = createRouter({
@@ -16,7 +17,12 @@ const router = createRouter({
       component: DefaultLayout,
       children: [
         { path: "", name: "home", component: HomeView },
-        { path: "pokedex", name: "pokedex", component: PokedexView },
+        { path: "pokedex", name: "pokedex", component: GenerationsView },
+        {
+          path: "pokedex/gen/:gen",
+          name: "pokedex-generation",
+          component: PokedexView,
+        },
         {
           path: "pokedex/:id",
           name: "pokedex-detail",

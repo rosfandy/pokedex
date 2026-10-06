@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import PokeballLoader from "../components/PokeballLoader.vue";
+import { generationOfId } from "../data/generations";
 
 const API = "https://pokeapi.co/api/v2";
 const MAX_ID = 1025;
@@ -19,6 +20,7 @@ const error = ref("");
 
 const id = () => Number(route.params.id);
 const dex = (n) => String(n).padStart(3, "0");
+const currentGen = computed(() => generationOfId(Number(route.params.id)));
 const titleCase = (s) => s[0].toUpperCase() + s.slice(1);
 const TABS = [
   { key: "about", label: "About" },
@@ -39,7 +41,6 @@ const STAT_LABEL = {
   speed: "Speed",
 };
 
-// Full literals only — Tailwind cannot extract classes built by interpolation.
 const heroSkin = {
   grass: "bg-type-grass",
   fire: "bg-type-fire",
@@ -74,7 +75,6 @@ async function load() {
   }
 }
 
-// Prev/next in the national dex; names only, for the switcher buttons.
 async function loadNeighbors() {
   const n = id();
   for (const k of [n - 1, n + 1]) {
@@ -86,7 +86,6 @@ async function loadNeighbors() {
   }
 }
 
-// Both lazy: one extra round trip only when the tab is actually opened.
 watch(tab, (t) => {
   if (t === "evolution" && !chain.value) {
     fetch(species.value.evolution_chain.url)
@@ -176,7 +175,6 @@ const stats = computed(() =>
   (poke.value?.stats ?? []).map((s) => ({
     label: STAT_LABEL[s.stat.name] ?? s.stat.name,
     value: s.base_stat,
-    // The mock tints special stats at >= 65; the bar is scaled against 200.
     good: s.base_stat >= 65,
   })),
 );
@@ -188,8 +186,6 @@ const minMax = computed(() => {
     : { min: 0, max: 0 };
 });
 
-// --- Stat radar: same geometry/axis order as the elemental chart, but plotting
-// this species' own six stats. Values clamp to 180 so the polygon stays inside.
 const R = 104;
 const C = 150;
 const RADAR_MAX = 180;
@@ -239,7 +235,6 @@ const radarShape = computed(() =>
     ? radarPoly(RADAR_ORDER.map((k) => statByName.value[k] ?? 0))
     : "",
 );
-// Species benchmark: the classic 70 per stat baseline.
 const radarBenchmark = computed(() =>
   stats.value.length ? radarPoly(RADAR_ORDER.map(() => 70)) : "",
 );
@@ -261,7 +256,6 @@ const radarAxes = computed(() => {
   });
 });
 
-// Flatten the chain into "from → to" rows, mirroring the mock's stage cards.
 const stages = computed(() => {
   const out = [];
   const walk = (node) => {
@@ -294,7 +288,7 @@ function playCry() {
       >
         <div class="flex items-center gap-2 text-sm text-poke-gray-500">
           <RouterLink
-            to="/pokedex"
+            :to="`/pokedex/gen/${currentGen?.gen ?? 1}`"
             class="flex items-center gap-1.5 font-medium transition-colors hover:text-poke-teal"
           >
             <svg
@@ -311,6 +305,14 @@ function playCry() {
               />
             </svg>
             Back to Pokédex
+          </RouterLink>
+          <span class="text-poke-gray-300">/</span>
+          <RouterLink
+            v-if="currentGen"
+            :to="`/pokedex/gen/${currentGen.gen}`"
+            class="font-semibold transition-colors hover:text-poke-teal"
+          >
+            {{ currentGen.tag }}
           </RouterLink>
           <span class="text-poke-gray-300">/</span>
           <span class="font-semibold text-poke-gray-700">{{
@@ -379,7 +381,6 @@ function playCry() {
         v-reveal="{ child: true, y: 40, stagger: 0.1 }"
         class="grid grid-cols-1 items-start gap-6 lg:grid-cols-12"
       >
-        <!-- Hero -->
         <section
           class="relative flex min-h-[500px] flex-col justify-between overflow-hidden rounded-2xl p-6 text-white shadow-xl transition-colors duration-500 lg:col-span-5"
           :class="hero"
@@ -473,7 +474,6 @@ function playCry() {
           </div>
         </section>
 
-        <!-- Details -->
         <section
           class="card-soft-shadow rounded-2xl border border-poke-gray-200/80 bg-white p-5 sm:p-6 lg:col-span-7"
         >
@@ -501,7 +501,6 @@ function playCry() {
             </nav>
           </div>
 
-          <!-- About -->
           <div v-if="tab === 'about'" class="space-y-6 pt-6">
             <div>
               <h2
@@ -613,13 +612,11 @@ function playCry() {
             </div>
           </div>
 
-          <!-- Base stats -->
           <div v-else-if="tab === 'stats'" class="space-y-4 pt-6">
             <h3 class="mb-2 text-base font-bold text-poke-gray-900">
               Base Statistics
             </h3>
 
-            <!-- Radar diagram -->
             <div
               class="flex flex-col items-center gap-3 rounded-2xl border border-poke-gray-200/70 bg-poke-gray-50/60 p-4"
             >
@@ -665,7 +662,6 @@ function playCry() {
                     stroke-width="1"
                   />
 
-                  <!-- 70/stat baseline -->
                   <polygon
                     :points="radarBenchmark"
                     fill="none"
@@ -759,7 +755,6 @@ function playCry() {
             </div>
           </div>
 
-          <!-- Evolution -->
           <div v-else-if="tab === 'evolution'" class="space-y-6 pt-6">
             <div class="flex items-center justify-between">
               <h3 class="text-base font-bold text-poke-gray-900">
@@ -856,7 +851,6 @@ function playCry() {
             </p>
           </div>
 
-          <!-- Moves -->
           <div v-else class="space-y-4 pt-6">
             <h3 class="mb-2 text-base font-bold text-poke-gray-900">
               Natural Learnset (Level Up)

@@ -1,11 +1,16 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 import PokemonCard from "../components/PokemonCard.vue";
 import PokeballLoader from "../components/PokeballLoader.vue";
+import { generationByGen } from "../data/generations";
 
 const API = "https://pokeapi.co/api/v2";
 const PAGE = 16;
+
+const route = useRoute();
+const router = useRouter();
+const generation = computed(() => generationByGen(route.params.gen));
 
 const filters = [
   { label: "All", value: "", skin: "" },
@@ -48,7 +53,6 @@ const filters = [
 
 const idleChip =
   "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50";
-// The mock only ever renders the selected pill as dark, so reuse that for types.
 const activeChip = "bg-slate-900 text-white shadow-sm";
 
 const query = ref("");
@@ -56,12 +60,8 @@ const type = ref("");
 const view = ref("grid");
 const shown = ref(PAGE);
 
-// Everything loaded so far. Grows by PAGE per Load More — never preloaded.
 const index = ref([]);
 const total = ref(0);
-// Full name list, fetched only on the first keystroke of a search. PokeAPI has
-// no name-search endpoint, so filtering has to be local — but only on demand.
-const searchPool = ref(null);
 const details = ref(new Map());
 
 const loading = ref(true);
@@ -75,13 +75,9 @@ const toCard = (d) => ({
   name: d.name[0].toUpperCase() + d.name.slice(1),
   types: d.types.map((t) => t.type.name),
   image: d.sprites?.other?.["official-artwork"]?.front_default ?? "",
-  // Raichu is rendered orange in the mock, unlike its Electric type colour.
   ...(d.id === 26 ? { color: "orange" } : null),
 });
 
-// Details for whatever is on screen now, minus anything already fetched or still
-// in flight. `inflight` matters because fill() runs both from the [filtered,
-// shown] watcher and from loadIndex(), which would otherwise double every request.
 const inflight = new Set();
 
 async function fill() {
@@ -102,18 +98,24 @@ async function fill() {
   );
 }
 
-// Browse mode asks for one page at a time. Type filtering needs the whole type
-// list (that is how the API works), but its details are still fetched per page.
 async function loadIndex() {
+  const gen = generation.value;
+  if (!gen) return router.replace({ name: "pokedex" });
   loading.value = true;
   error.value = "";
+  details.value = new Map();
   try {
-    const url = type.value
-      ? `${API}/type/${type.value}`
-      : `${API}/pokemon?limit=${PAGE}`;
-    const d = await (await fetch(url)).json();
-    index.value = type.value ? d.pokemon.map((e) => e.pokemon) : d.results;
-    total.value = type.value ? d.pokemon.length : d.count;
+    const span = gen.to - gen.from + 1;
+    const d = await (
+      await fetch(`${API}/pokemon?limit=${span}&offset=${gen.from - 1}`)
+    ).json();
+    index.value = d.results;
+    total.value = d.results.length;
+    if (type.value) {
+      const t = await (await fetch(`${API}/type/${type.value}`)).json();
+      const inType = new Set(t.pokemon.map((e) => idOf(e.pokemon.url)));
+      index.value = index.value.filter((e) => inType.has(idOf(e.url)));
+    }
     shown.value = PAGE;
     await fill();
   } catch {
@@ -123,19 +125,10 @@ async function loadIndex() {
   }
 }
 
-// Load More: fetch the next PAGE of *names* from the API, then their details.
-// Typing a search, or filtering by type, only re-slices what is already local.
 async function loadMore() {
   if (loadingMore.value) return;
   loadingMore.value = true;
   try {
-    if (!query.value.trim() && !type.value) {
-      const d = await (
-        await fetch(`${API}/pokemon?limit=${PAGE}&offset=${index.value.length}`)
-      ).json();
-      index.value = index.value.concat(d.results);
-      total.value = d.count;
-    }
     shown.value += PAGE;
     await fill();
   } finally {
@@ -143,22 +136,68 @@ async function loadMore() {
   }
 }
 
-// Fetch the full name list once, the first time a search is actually typed.
-watch(query, async (q) => {
-  if (!q.trim() || searchPool.value) return;
+const nameIndex = ref(null); // cached {name,url}[] for partial matching
+const exact = ref(null); // raw /pokemon/{query} payload, if the name matched
+const searching = ref(false);
+const searchResults = ref(null);
+let debounce = null;
+
+async function searchPoke(q) {
+  const gen = generation.value;
+  if (!gen) return;
+  searching.value = true;
+  const hits = [];
   try {
-    const d = await (await fetch(`${API}/pokemon?limit=100000`)).json();
-    searchPool.value = d.results;
+    try {
+      const d = await (await fetch(`${API}/pokemon/${q}`)).json();
+      if (d && d.id && d.id >= gen.from && d.id <= gen.to) {
+        exact.value = d;
+        details.value.set(d.id, toCard(d));
+        hits.push({ name: d.name, url: `${API}/pokemon/${d.id}/` });
+      } else {
+        exact.value = null;
+      }
+    } catch {
+      exact.value = null; // 404 for most partial words; not an error worth showing
+    }
+
+    if (!nameIndex.value) {
+      const d = await (await fetch(`${API}/pokemon?limit=100000`)).json();
+      nameIndex.value = d.results;
+    }
+    for (const e of nameIndex.value) {
+      const id = idOf(e.url);
+      if (id < gen.from || id > gen.to) continue;
+      if (!e.name.includes(q)) continue;
+      if (hits.some((h) => h.name === e.name)) continue;
+      hits.push(e);
+    }
   } catch {
-    searchPool.value = []; // search stays limited to what is already loaded
+    error.value = "Could not reach the Pokédex API.";
+  } finally {
+    searchResults.value = hits;
+    shown.value = PAGE;
+    searching.value = false;
+    fill();
   }
-  shown.value = PAGE;
+}
+
+watch(query, (q) => {
+  clearTimeout(debounce);
+  const term = q.trim().toLowerCase();
+  if (!term) {
+    searchResults.value = null;
+    exact.value = null;
+    shown.value = PAGE;
+    return;
+  }
+  if (term.length < 2) return; // one letter matches almost everything
+  debounce = setTimeout(() => searchPoke(term), 300);
 });
 
 const filtered = computed(() => {
-  const q = query.value.trim().toLowerCase();
-  const src = q && searchPool.value ? searchPool.value : index.value;
-  return src.filter((e) => !q || e.name.includes(q));
+  if (searchResults.value) return searchResults.value;
+  return index.value;
 });
 
 const visible = computed(() =>
@@ -167,19 +206,18 @@ const visible = computed(() =>
     .map((e) => details.value.get(idOf(e.url)))
     .filter(Boolean),
 );
-const remaining = computed(() => {
-  // Browsing counts against the API's total, not just the pages already loaded.
-  const searching = !!query.value.trim();
-  return (searching ? filtered.value.length : total.value) - shown.value;
-});
-// Browsing reports the API total; a search reports its own match count.
-const countLabel = computed(() =>
-  query.value.trim() ? filtered.value.length : total.value,
+const remaining = computed(() => filtered.value.length - shown.value);
+const countLabel = computed(() => filtered.value.length);
+const isSearching = computed(() => searchResults.value !== null);
+const canLoadMore = computed(
+  () =>
+    !isSearching.value &&
+    !loading.value &&
+    !loadingMore.value &&
+    remaining.value > 0,
 );
 
-watch(type, loadIndex, { immediate: true });
-watch(query, () => (shown.value = PAGE));
-// New page, new filter, or typed search — fetch only the still-missing details.
+watch([() => route.params.gen, type], loadIndex, { immediate: true });
 watch([filtered, shown], fill);
 </script>
 
@@ -194,29 +232,31 @@ watch([filtered, shown], fill);
     >
       <section class="mb-6">
         <div class="mb-3 flex items-center justify-between">
-          <RouterLink
-            to="/"
-            class="group inline-flex items-center gap-2 text-sm font-semibold text-slate-700 transition-colors hover:text-slate-950"
+          <div
+            class="flex items-center gap-2 text-xs font-bold tracking-wider text-slate-400 uppercase"
           >
-            <span
-              class="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition-transform group-hover:-translate-x-0.5"
+            <RouterLink
+              to="/pokedex"
+              class="inline-flex items-center gap-1.5 transition-colors hover:text-poke-red"
             >
               <svg
-                class="h-5 w-5 text-slate-800"
+                class="h-4 w-4"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2.5"
                 viewBox="0 0 24 24"
               >
                 <path
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  d="M15 19l-7-7 7-7"
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 />
               </svg>
-            </span>
-            <span class="hidden sm:inline">Back to Categories</span>
-          </RouterLink>
+              Back to Pokédex
+            </RouterLink>
+            <span>/</span>
+            <span class="text-slate-600">{{ generation?.tag ?? "GEN" }}</span>
+          </div>
 
           <div
             class="flex items-center gap-1.5 rounded-2xl border border-slate-200/90 bg-white p-1.5 shadow-sm"
@@ -273,10 +313,11 @@ watch([filtered, shown], fill);
             <h1
               class="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl"
             >
-              Pokedex
+              {{ generation?.label ?? "Pokedex" }}
             </h1>
             <p class="mt-1.5 text-sm font-medium text-slate-500">
-              Search for Pokémon by name or explore by national Pokédex index.
+              {{ generation?.region }} — National Dex
+              {{ generation?.range }}
             </p>
           </div>
 
@@ -336,15 +377,13 @@ watch([filtered, shown], fill);
           v-reveal="{ y: 26, duration: 0.55 }"
         />
 
-        <!-- Bouncing Pokéball while the first details are in flight -->
         <PokeballLoader
-          v-if="loading && !visible.length"
+          v-if="(loading || searching) && !visible.length"
           class="col-span-full"
-          label="Catching Pokémon..."
+          :label="searching ? 'Searching the Pokédex…' : 'Catching Pokémon...'"
           size="h-20 w-20"
         />
 
-        <!-- Skeletons while the next batch of details is in flight -->
         <div
           v-for="n in loadingMore ? PAGE : 0"
           :key="`sk${n}`"
@@ -360,22 +399,25 @@ watch([filtered, shown], fill);
         <button class="ml-1 underline" @click="loadIndex">Retry</button>
       </p>
       <p
-        v-else-if="!visible.length && !loading"
+        v-else-if="!visible.length && !loading && !searching"
         class="py-16 text-center text-sm font-medium text-slate-400"
       >
-        No Pokémon match that search.
+        {{ isSearching ? "No Pokémon match that search." : "No Pokémon here yet." }}
       </p>
 
       <div class="mt-10 flex flex-col items-center justify-center gap-2.5">
         <button
-          v-if="remaining > 0"
+          v-if="canLoadMore"
           class="rounded-full bg-slate-900 px-7 py-3 text-sm font-bold tracking-wide text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg"
           :disabled="loadingMore"
           @click="loadMore()"
         >
           Load More Pokémon
         </button>
-        <span class="text-xs font-semibold text-slate-400">
+        <span
+          v-if="visible.length"
+          class="text-xs font-semibold text-slate-400"
+        >
           Showing {{ visible.length }} of {{ countLabel }} Pokémon
         </span>
       </div>
