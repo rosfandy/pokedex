@@ -269,21 +269,6 @@ const reset = () => {
           class="flex flex-col items-center justify-between gap-5 sm:flex-row"
         >
           <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2.5">
-              <button
-                v-for="(a, i) in realms"
-                :key="`dot${i}`"
-                type="button"
-                :aria-label="`Go to Realm ${i + 1}`"
-                class="shrink-0 cursor-pointer rounded-full transition-all duration-300"
-                :class="
-                  i === active
-                    ? `h-2.5 w-10 ${a.tone.dot} ring-4 ring-slate-900/5 ring-offset-1`
-                    : 'h-2.5 w-2.5 bg-slate-300 hover:scale-125 hover:bg-slate-400'
-                "
-                @click="setCard(i)"
-              />
-            </div>
             <div
               class="flex shrink-0 items-center gap-1.5 font-mono text-xs font-semibold text-slate-500"
             >
