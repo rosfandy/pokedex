@@ -1,0 +1,218 @@
+@import "tailwindcss";
+
+html {
+  overflow-x: clip;
+}
+
+/* No `scroll-behavior: smooth` here on purpose: the browser restarts a CSS
+   smooth-scroll on every scrollTop write, which cancels GSAP's ScrollToPlugin
+   tween mid-flight. All smooth scrolling in this app is GSAP-driven. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@theme static {
+  /* Typography */
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand palette */
+  --color-poke-green: #48d0b0;
+  --color-poke-green-dark: #38be9e;
+  --color-poke-red: #fb6c6c;
+  --color-poke-red-dark: #f05656;
+  --color-poke-blue: #58abf6;
+  --color-poke-blue-dark: #4199e8;
+  --color-poke-yellow: #ffce4b;
+  --color-poke-yellow-dark: #f2bd31;
+  --color-poke-purple: #7c538c;
+  --color-poke-purple-dark: #6c437b;
+  --color-poke-brown: #b1736c;
+  --color-poke-brown-dark: #9f6059;
+  --color-poke-bg: #f7f9fc;
+  --color-poke-dark-text: #303943;
+
+  /* Elevation */
+  --shadow-card-green: 0 12px 24px -6px rgb(72 208 176 / 0.45);
+  --shadow-card-red: 0 12px 24px -6px rgb(251 108 108 / 0.45);
+  --shadow-card-blue: 0 12px 24px -6px rgb(88 171 246 / 0.45);
+  --shadow-card-yellow: 0 12px 24px -6px rgb(255 206 75 / 0.45);
+  --shadow-card-purple: 0 12px 24px -6px rgb(124 83 140 / 0.45);
+  --shadow-card-brown: 0 12px 24px -6px rgb(177 115 108 / 0.45);
+  --shadow-pill: 0 4px 20px rgb(0 0 0 / 0.04);
+  --shadow-glow-water: 0 12px 28px -6px rgb(118 189 254 / 0.45);
+  --color-poke-orange: #f8a03e;
+
+  /* Pokémon type palette — base tint + readable "ink" shade for tinted chips */
+  --color-type-grass: #48d0b0;
+  --color-type-grass-ink: #2aa386;
+  --color-type-fire: #fb6c6c;
+  --color-type-fire-ink: #e04848;
+  --color-type-water: #76bdfe;
+  --color-type-water-ink: #3a8ed9;
+  --color-type-electric: #ffce4b;
+  --color-type-electric-ink: #be8800;
+  --color-type-poison: #9f5bba;
+  --color-type-poison-ink: #883da4;
+  --color-type-ghost: #7c538c;
+  --color-type-ghost-ink: #6c3c7e;
+  --color-type-normal: #a8a878;
+  --color-type-psychic: #f85888;
+
+  /* Secondary display face (home screen uses Poppins via --font-sans) */
+  --font-jakarta: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* Type scale shared by the detail and elemental screens */
+  --text-body-sm: 0.75rem;
+  --text-body-sm--line-height: 1.125rem;
+  --text-body-md: 0.875rem;
+  --text-body-md--line-height: 1.375rem;
+  --text-body-lg: 1rem;
+  --text-body-lg--line-height: 1.5rem;
+  --text-label-sm: 0.6875rem;
+  --text-label-sm--line-height: 0.875rem;
+  --text-label-sm--letter-spacing: 0.06em;
+  --text-label-md: 0.75rem;
+  --text-label-md--line-height: 1rem;
+  --text-label-md--letter-spacing: 0.04em;
+  --text-label-lg: 0.875rem;
+  --text-label-lg--line-height: 1.125rem;
+  --text-label-lg--letter-spacing: 0.02em;
+  --text-headline-sm: 1.125rem;
+  --text-headline-sm--line-height: 1.5rem;
+  --text-headline-sm--letter-spacing: -0.01em;
+  --text-headline-md: 1.375rem;
+  --text-headline-md--line-height: 1.75rem;
+  --text-headline-md--letter-spacing: -0.02em;
+  --text-headline-lg: 1.875rem;
+  --text-headline-lg--line-height: 2.25rem;
+  --text-headline-lg--letter-spacing: -0.025em;
+  --text-headline-xl: 2.5rem;
+  --text-headline-xl--line-height: 3rem;
+  --text-headline-xl--letter-spacing: -0.03em;
+
+  /* Detail screen: accent + neutral scale (pokeGray 800/300/600 undefined in the
+     mock, interpolated so the ramp stays monotonic) */
+  --color-poke-teal: #48d0b0;
+  --color-poke-gray-50: #f8f9fa;
+  --color-poke-gray-100: #f2f4f7;
+  --color-poke-gray-200: #e4e7ec;
+  --color-poke-gray-300: #d0d5dd;
+  --color-poke-gray-400: #98a2b3;
+  --color-poke-gray-500: #667085;
+  --color-poke-gray-600: #475467;
+  --color-poke-gray-700: #344054;
+  --color-poke-gray-800: #273247;
+  --color-poke-gray-900: #1d2939;
+
+  /* Pokéball loader */
+  --animate-pokeball-bounce: pokeball-bounce 1.1s
+    cubic-bezier(0.28, 0.84, 0.42, 1) infinite;
+  --animate-pokeball-shadow: pokeball-shadow 1.1s
+    cubic-bezier(0.28, 0.84, 0.42, 1) infinite;
+}
+
+@keyframes pokeball-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  8% {
+    transform: translateY(0) scale(1.12, 0.88);
+  }
+  40% {
+    transform: translateY(-48%) scale(0.92, 1.08);
+  }
+  55% {
+    transform: translateY(-52%) scale(0.96, 1.04);
+  }
+  72% {
+    transform: translateY(0) scale(1.08, 0.92);
+  }
+  84% {
+    transform: translateY(0) scale(0.98, 1.02);
+  }
+}
+
+/* Contact shadow tightens as the ball leaves the ground. */
+@keyframes pokeball-shadow {
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 0.28;
+  }
+  40%,
+  55% {
+    transform: translateX(-50%) scale(0.55);
+    opacity: 0.1;
+  }
+  72% {
+    transform: translateX(-50%) scale(1.05);
+    opacity: 0.3;
+  }
+}
+
+@utility pokeball-watermark {
+  background:
+    radial-gradient(
+      circle at center,
+      transparent 38%,
+      rgb(255 255 255 / 0.18) 39%,
+      rgb(255 255 255 / 0.18) 46%,
+      transparent 47%
+    ),
+    linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0.18) 0%,
+      rgb(255 255 255 / 0.18) 46%,
+      transparent 46%,
+      transparent 54%,
+      rgb(255 255 255 / 0.18) 54%,
+      rgb(255 255 255 / 0.18) 100%
+    ),
+    radial-gradient(
+      circle at center,
+      rgb(255 255 255 / 0.2) 20%,
+      transparent 21%
+    );
+}
+
+@utility dot-matrix {
+  background-image: radial-gradient(
+    rgb(255 255 255 / 0.42) 1.8px,
+    transparent 1.8px
+  );
+  background-size: 14px 14px;
+}
+
+@utility card-soft-shadow {
+  box-shadow:
+    0 20px 40px -15px rgb(29 41 57 / 0.08),
+    0 0 1px 1px rgb(29 41 57 / 0.04);
+}
+
+@utility bg-pokeball-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='white' fill-opacity='0.16'%3E%3Cpath d='M50 0C22.4 0 0 22.4 0 50s22.4 50 50 50 50-22.4 50-50S77.6 0 50 0zm0 10c20.1 0 36.7 14.8 39.5 34.2H68.8C66.1 36.4 58.7 30.6 50 30.6s-16.1 5.8-18.8 13.6H10.5C13.3 24.8 29.9 10 50 10zm0 80c-20.1 0-36.7-14.8-39.5-34.2h20.7c2.7 7.8 10.1 13.6 18.8 13.6s16.1-5.8 18.8-13.6h20.7C86.7 75.2 70.1 90 50 90zm0-32a8 8 0 100-16 8 8 0 000 16z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right -18px bottom -22px;
+  background-size: 155px 155px;
+}
+
+@utility bg-pokeball-watermark {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='%23000000' fill-opacity='0.03'%3E%3Cpath d='M50 0C22.4 0 0 22.4 0 50s22.4 50 50 50 50-22.4 50-50S77.6 0 50 0zm0 12c19.1 0 34.9 13.8 37.6 32H67.4C64.9 37.6 58 32.5 50 32.5s-14.9 5.1-17.4 11.5H12.4C15.1 25.8 30.9 12 50 12zm0 76c-19.1 0-34.9-13.8-37.6-32h20.2c2.5 6.4 9.4 11.5 17.4 11.5s14.9-5.1 17.4-11.5h20.2C84.9 74.2 69.1 88 50 88zm0-30a8 8 0 100-16 8 8 0 000 16z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: top -80px right -80px;
+  background-size: 480px 480px;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
