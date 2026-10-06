@@ -4,7 +4,12 @@ import { RouterLink, useRoute, useRouter } from "vue-router";
 import gsap from "gsap";
 import AdventureCard from "../components/AdventureCard.vue";
 import PokeballLoader from "../components/PokeballLoader.vue";
-import { REGIONS, adventureShort, loadRegion, regionByKey } from "../data/adventures";
+import {
+  REGIONS,
+  adventureShort,
+  loadRegion,
+  regionByKey,
+} from "../data/adventures";
 
 const route = useRoute();
 const router = useRouter();
@@ -80,7 +85,8 @@ async function load(key) {
   region.value = regionByKey(key);
   try {
     realms.value = await loadRegion(region.value.key);
-    if (!realms.value.length) error.value = "No encounter data for this region.";
+    if (!realms.value.length)
+      error.value = "No encounter data for this region.";
   } catch {
     error.value = "Could not reach the Pokédex API.";
   } finally {
@@ -123,7 +129,7 @@ const reset = () => {
 <template>
   <div class="relative min-h-screen overflow-x-clip font-jakarta">
     <div
-      class="pointer-events-none absolute top-0 right-0 z-0 h-[520px] w-[520px] bg-pokeball-watermark"
+      class="pointer-events-none absolute -top-10 right-0 z-0 h-[520px] w-[520px] bg-pokeball-watermark"
     />
 
     <PokeballLoader
@@ -178,8 +184,7 @@ const reset = () => {
           </h1>
           <p class="text-body-md leading-relaxed text-slate-600">
             Explore {{ realms.length }} wild encounter locations across
-            {{ region.label }} — species, level bands, and spawn rates straight
-            from the games.
+            {{ region.label }}
           </p>
         </div>
       </header>
@@ -259,56 +264,6 @@ const reset = () => {
           >
             <AdventureCard :adventure="a" />
           </div>
-        </div>
-      </section>
-
-      <section class="mx-auto w-full max-w-4xl pb-4">
-        <div
-          class="flex flex-col items-center justify-between gap-5 sm:flex-row"
-        >
-          <div class="flex items-center gap-4">
-            <div
-              class="flex shrink-0 items-center gap-1.5 font-mono text-xs font-semibold text-slate-500"
-            >
-              <span class="font-bold text-slate-900">{{
-                String(active + 1).padStart(2, "0")
-              }}</span>
-              <span class="text-slate-300">/</span>
-              <span>{{ String(realms.length).padStart(2, "0") }}</span>
-              <span class="ml-1 text-slate-400">Active Realms</span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            class="shrink-0 cursor-pointer rounded-full bg-poke-gray-900 px-4 py-1.5 text-xs font-bold text-white transition-colors hover:bg-poke-gray-700"
-            @click="reset"
-          >
-            Recenter Deck
-          </button>
-        </div>
-
-        <div
-          class="no-scrollbar mt-4 flex items-center gap-2.5 overflow-x-auto pb-1"
-        >
-          <button
-            v-for="(a, i) in realms"
-            :key="`pill${a.slug}`"
-            type="button"
-            class="flex shrink-0 cursor-pointer items-center gap-2 rounded-full border px-3.5 py-2 text-xs transition-all duration-300"
-            :class="
-              i === active
-                ? `-translate-y-0.5 font-bold shadow-md ${a.tone.pillOn}`
-                : 'border-slate-200 bg-white font-medium text-slate-700 hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-sm'
-            "
-            @click="setCard(i)"
-          >
-            <span
-              class="h-2 w-2 rounded-full transition-transform"
-              :class="[a.tone.dot, i === active ? 'scale-125' : '']"
-            />
-            {{ adventureShort(a.realm) }}
-          </button>
         </div>
       </section>
     </main>

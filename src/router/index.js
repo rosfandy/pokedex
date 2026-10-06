@@ -8,7 +8,7 @@ import ElementalView from "../views/ElementalView.vue";
 import ElementalDetailView from "../views/ElementalDetailView.vue";
 import GenerationsView from "../views/GenerationsView.vue";
 import AdventureView from "../views/AdventureView.vue";
-import AdventureDetailView from "../views/AdventureDetailView.vue";
+import EncounterView from "../views/EncounterView.vue";
 import { smoothScrollTo } from "../directives/reveal";
 
 const router = createRouter({
@@ -48,7 +48,7 @@ const router = createRouter({
         {
           path: "adventure/:region/:slug",
           name: "adventure-detail",
-          component: AdventureDetailView,
+          component: EncounterView,
         },
       ],
     },
