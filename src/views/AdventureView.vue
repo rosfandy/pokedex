@@ -209,7 +209,7 @@ const reset = () => {
 
       <section
         ref="stage"
-        class="relative mx-auto my-auto flex min-h-[600px] w-full max-w-5xl items-center justify-center py-4"
+        class="relative mx-auto flex w-full max-w-5xl items-center justify-center pt-2 pb-0"
       >
         <button
           type="button"
@@ -249,14 +249,12 @@ const reset = () => {
           </svg>
         </button>
 
-        <div
-          class="relative flex h-[560px] w-full max-w-md items-center justify-center"
-        >
+        <div class="relative grid w-full max-w-md place-items-start">
           <div
             v-for="(a, i) in realms"
             :key="a.slug"
             ref="cards"
-            class="deck-card absolute top-0 w-full will-change-transform"
+            class="deck-card col-start-1 row-start-1 w-full will-change-transform"
             :data-card-index="i"
           >
             <AdventureCard :adventure="a" />
@@ -264,7 +262,7 @@ const reset = () => {
         </div>
       </section>
 
-      <section class="mx-auto w-full max-w-4xl pt-6 pb-4">
+      <section class="mx-auto w-full max-w-4xl pb-4">
         <div
           class="flex flex-col items-center justify-between gap-5 sm:flex-row"
         >
