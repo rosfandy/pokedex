@@ -27,20 +27,22 @@ const timeline = ref(null);
 
 const sounds = {
   pop: new Audio("/pokeball_pop.mp3"),
+  bounce: new Audio("/pokeball_bounce.mp3"),
   roll: new Audio("/pokeball_roll.mp3"),
   caught: new Audio("/pokeball_caught.mp3"),
   failed: new Audio("/pokeball_failed.mp3"),
 };
 sounds.pop.preload = "auto";
+sounds.bounce.preload = "auto";
 sounds.roll.preload = "auto";
 sounds.caught.preload = "auto";
 sounds.failed.preload = "auto";
 
-function playSound(key) {
+function playSound(key, offset = 0) {
   const sound = sounds[key];
   if (!sound) return;
   try {
-    sound.currentTime = 0;
+    sound.currentTime = offset;
     const attempt = sound.play();
     if (attempt && typeof attempt.catch === "function") attempt.catch(() => {});
   } catch {
@@ -61,6 +63,7 @@ function stopSound(key) {
 
 function stopAllSounds() {
   stopSound("pop");
+  stopSound("bounce");
   stopSound("roll");
   stopSound("caught");
   stopSound("failed");
@@ -150,14 +153,16 @@ function run() {
       { y: 200, scale: 0.35, rotate: 0 },
       { y: -40, scale: 1, rotate: 540, duration: 0.75, ease: "power2.out" },
     )
-    .to(ball.value, { y: 0, duration: 0.2, ease: "power1.in" }, "+=0.05")
+    .to(ball.value, { y: 40, duration: 0.34, ease: "power1.in" }, "+=0.05")
+    .add(() => playSound("bounce", 1), ">")
+    .to(ball.value, { y: -6, duration: 0.26, ease: "power2.out" })
+    .to(ball.value, { y: 40, duration: 0.24, ease: "power1.in" })
     .add(() => {
       phase.value = PHASE.absorbing;
     })
-    .to(burst.value, { autoAlpha: 0.95, scale: 1.4, duration: 0.3, ease: "power2.out" }, "<")
-    .to(sprite.value, { autoAlpha: 0, scale: 0.08, y: 60, duration: 0.7, ease: "power2.in" }, "<")
+    .to(burst.value, { autoAlpha: 0.95, scale: 1.4, y: 40, duration: 0.3, ease: "power2.out" }, "<")
+    .to(sprite.value, { autoAlpha: 0, scale: 0.08, y: 40, duration: 0.7, ease: "power2.in" }, "<")
     .to(burst.value, { autoAlpha: 0, scale: 1.9, duration: 0.4 }, ">-0.1")
-    .to(ball.value, { y: 40, duration: 0.6, ease: "bounce.out" }, "<")
     .add(() => {
       phase.value = PHASE.shaking;
     });
