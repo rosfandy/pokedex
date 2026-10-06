@@ -14,6 +14,12 @@ const categories = [
     to: "/elemental",
     variant: "brown",
   },
+  {
+    label: "Adventure",
+    meta: "10 Regions • 700+ Realms",
+    to: "/adventure",
+    variant: "blue",
+  },
 ];
 
 const popular = [

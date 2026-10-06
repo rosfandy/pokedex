@@ -7,6 +7,8 @@ import PokedexDetailView from "../views/PokedexDetailView.vue";
 import ElementalView from "../views/ElementalView.vue";
 import ElementalDetailView from "../views/ElementalDetailView.vue";
 import GenerationsView from "../views/GenerationsView.vue";
+import AdventureView from "../views/AdventureView.vue";
+import AdventureDetailView from "../views/AdventureDetailView.vue";
 import { smoothScrollTo } from "../directives/reveal";
 
 const router = createRouter({
@@ -33,6 +35,20 @@ const router = createRouter({
           path: "elemental/:type",
           name: "elemental-detail",
           component: ElementalDetailView,
+        },
+        {
+          path: "adventure",
+          redirect: { name: "adventure-region", params: { region: "kanto" } },
+        },
+        {
+          path: "adventure/:region",
+          name: "adventure-region",
+          component: AdventureView,
+        },
+        {
+          path: "adventure/:region/:slug",
+          name: "adventure-detail",
+          component: AdventureDetailView,
         },
       ],
     },
